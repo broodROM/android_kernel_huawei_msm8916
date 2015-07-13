@@ -122,10 +122,12 @@ void __delete_from_page_cache(struct page *page)
 	 * invalidate any existing cleancache entries.  We can't leave
 	 * stale data around in the cleancache once our page is gone
 	 */
-	if (PageUptodate(page) && PageMappedToDisk(page))
+	if (PageUptodate(page) && PageMappedToDisk(page)) {
+		count_vm_event(PGPGOUTCLEAN);
 		cleancache_put_page(page);
-	else
+	} else {
 		cleancache_invalidate_page(mapping, page);
+	}
 
 	radix_tree_delete(&mapping->page_tree, page->index);
 	page->mapping = NULL;
