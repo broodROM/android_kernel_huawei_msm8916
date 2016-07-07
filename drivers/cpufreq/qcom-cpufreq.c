@@ -29,10 +29,6 @@
 #include <linux/of.h>
 #include <trace/events/power.h>
 
-#ifdef CONFIG_CPU_VOLTAGE_CONTROL
-static struct cpufreq_frequency_table *dts_freq_table;
-#endif
-
 static DEFINE_MUTEX(l2bw_lock);
 
 static struct clk *cpu_clk[NR_CPUS];
@@ -338,12 +334,6 @@ static struct cpufreq_frequency_table *cpufreq_parse_dt(struct device *dev,
 	if (nf == 0)
 		return ERR_PTR(-EINVAL);
 
-#ifdef CONFIG_CPU_VOLTAGE_CONTROL
-	dts_freq_table = devm_kzalloc(dev, (nf + 1) * sizeof(struct cpufreq_frequency_table),
-		GFP_KERNEL);
-	if (!dts_freq_table)
-		return ERR_PTR(-ENOMEM);
-#endif
 	data = devm_kzalloc(dev, nf * sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return ERR_PTR(-ENOMEM);
@@ -384,38 +374,15 @@ static struct cpufreq_frequency_table *cpufreq_parse_dt(struct device *dev,
 
 		ftbl[i].driver_data = i;
 		ftbl[i].frequency = f;
-#ifdef CONFIG_CPU_VOLTAGE_CONTROL
-		dts_freq_table[i].frequency = data[i];
-#endif
 	}
 
 	ftbl[i].driver_data = i;
 	ftbl[i].frequency = CPUFREQ_TABLE_END;
-#ifdef CONFIG_CPU_VOLTAGE_CONTROL
-	dts_freq_table[i].frequency = CPUFREQ_TABLE_END;
-#endif
+
 	devm_kfree(dev, data);
 
 	return ftbl;
 }
-
-
-#ifdef CONFIG_CPU_VOLTAGE_CONTROL
-bool is_used_by_scaling(unsigned int freq)
-{
-    unsigned int i, cpu_freq;
-    
-    for (i = 0; dts_freq_table[i].frequency != CPUFREQ_TABLE_END; i++) {
-        cpu_freq = dts_freq_table[i].frequency;
-        if (cpu_freq == CPUFREQ_ENTRY_INVALID)
-            continue;
-        if (freq == cpu_freq)
-            return true;
-    }
-    return -EINVAL;
-}
-#endif
-
 
 static int __init msm_cpufreq_probe(struct platform_device *pdev)
 {
@@ -535,4 +502,3 @@ static int __init msm_cpufreq_early_register(void)
 	return register_hotcpu_notifier(&msm_cpufreq_cpu_notifier);
 }
 core_initcall(msm_cpufreq_early_register);
-
